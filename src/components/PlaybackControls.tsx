@@ -32,16 +32,6 @@ export function PlaybackControls({
           {isSpeaking ? "⏹ Stop" : "▶ Play"}
         </button>
 
-        {/* Replay */}
-        <button
-          onClick={onPlay}
-          disabled={isSpeaking}
-          className="p-2.5 rounded-xl border border-surface-300 dark:border-surface-600 text-surface-600 dark:text-surface-400 hover:bg-surface-100 dark:hover:bg-surface-800 disabled:opacity-30 transition-colors"
-          title="Replay"
-        >
-          🔄
-        </button>
-
         {/* Speed control */}
         <div className="flex items-center gap-1 ml-auto">
           <span className="text-xs text-surface-500 mr-1">Speed</span>

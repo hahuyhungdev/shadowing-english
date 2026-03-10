@@ -14,7 +14,7 @@ interface UseSpeechSynthesisReturn {
 
 export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speed, setSpeed] = useState<SpeedRate>(1);
+  const [speed, setSpeed] = useState<SpeedRate>(0.8);
   const [selectedVoice, setSelectedVoice] = useState("");
   const [voices, setVoices] = useState<AccentVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
