@@ -149,18 +149,16 @@ function App() {
   // --- Auto-pronounce after navigation ---
   const prevIndexRef = useRef(currentIndex);
   useEffect(() => {
-    if (
-      prevIndexRef.current !== currentIndex &&
-      settings.autoPronounce &&
-      sentences[currentIndex]
-    ) {
-      // Small delay to let the state settle after navigation
-      const timer = setTimeout(() => {
-        speakWithLoop(sentences[currentIndex]);
-      }, 200);
-      return () => clearTimeout(timer);
+    if (prevIndexRef.current !== currentIndex) {
+      prevIndexRef.current = currentIndex;
+      if (settings.autoPronounce && sentences[currentIndex]) {
+        // Small delay to let the state settle after navigation
+        const timer = setTimeout(() => {
+          speakWithLoop(sentences[currentIndex]);
+        }, 200);
+        return () => clearTimeout(timer);
+      }
     }
-    prevIndexRef.current = currentIndex;
   }, [currentIndex, sentences, settings.autoPronounce, speakWithLoop]);
 
   // --- Keyboard shortcuts ---
