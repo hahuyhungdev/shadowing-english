@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useCallback,
   useEffectEvent,
   useEffect,
   useRef,
@@ -68,6 +69,7 @@ interface PracticeContextValue {
 
 const PracticeContext = createContext<PracticeContextValue | null>(null);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function usePractice() {
   const ctx = useContext(PracticeContext);
   if (!ctx) throw new Error("usePractice must be used within PracticeProvider");
@@ -88,25 +90,32 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
 
   // ── Navigation ──────────────────────────────────────────────
 
-  const goToSentence = useEffectEvent((index: number) => {
-    if (index < 0 || index >= session.sentences.length) return;
-    session.setCurrentIndex(index);
-    recording.resetScore();
-    recording.resetTranscript();
-    recording.resetRecording();
-    audio.stop();
-    if (session.transcriptHash) {
-      storage.saveCurrentIndex(session.transcriptHash, index);
-    }
-  });
+  const goToSentence = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= session.sentences.length) return;
+      session.setCurrentIndex(index);
+      recording.resetScore();
+      recording.resetTranscript();
+      recording.resetRecording();
+      audio.stop();
+      if (session.transcriptHash) {
+        storage.saveCurrentIndex(session.transcriptHash, index);
+      }
+    },
+    // audio.stop, recording.* are useEffectEvent — stable references
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session.sentences.length, session.transcriptHash],
+  );
 
-  const goNext = useEffectEvent(() => {
-    goToSentence(session.currentIndex + 1);
-  });
+  const goNext = useCallback(
+    () => goToSentence(session.currentIndex + 1),
+    [session.currentIndex, goToSentence],
+  );
 
-  const goPrevious = useEffectEvent(() => {
-    goToSentence(session.currentIndex - 1);
-  });
+  const goPrevious = useCallback(
+    () => goToSentence(session.currentIndex - 1),
+    [session.currentIndex, goToSentence],
+  );
 
   // ── Auto-pronounce on navigate ──────────────────────────────
 
@@ -117,47 +126,42 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
       }, 200);
       return () => clearTimeout(timer);
     }
+    // audio.speakWithLoop is useEffectEvent — stable, no need in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.currentIndex, currentSentence, settings.autoPronounce]);
 
   // ── Keyboard shortcuts ──────────────────────────────────────
 
+  // useEffectEvent: always reads latest goNext/goPrevious/audio without re-registering
+  const onKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (
+      e.target instanceof HTMLInputElement ||
+      e.target instanceof HTMLTextAreaElement ||
+      e.target instanceof HTMLSelectElement
+    ) {
+      return;
+    }
+    switch (e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        goPrevious();
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        goNext();
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        if (currentSentence) audio.speakWithLoop(currentSentence);
+        break;
+    }
+  });
+
   useEffect(() => {
     if (session.sentences.length === 0) return;
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      switch (e.key) {
-        case "ArrowLeft":
-          e.preventDefault();
-          goPrevious();
-          break;
-        case "ArrowRight":
-          e.preventDefault();
-          goNext();
-          break;
-        case "ArrowDown":
-          e.preventDefault();
-          if (currentSentence) audio.speakWithLoop(currentSentence);
-          break;
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [
-    session.currentIndex,
-    session.sentences,
-    goNext,
-    goPrevious,
-    currentSentence,
-  ]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [session.sentences.length]);
 
   // ── Scoring side effects ────────────────────────────────────
 
@@ -208,6 +212,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
     if (settings.loopMode) {
       setTimeout(() => audio.handlePlay(currentSentence), 2000);
     }
+    // audio.handlePlay is useEffectEvent — stable; goNext is useCallback captured via ref above
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recording.currentScore]);
 
@@ -233,27 +238,36 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
         audio.setSelectedVoice(settings.selectedAccent);
       }
     }
+    // audio.setSelectedVoice is useEffectEvent — stable, no need in deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audio.voices, audio.selectedVoice, settings.selectedAccent]);
 
   // ── Edit sentence ───────────────────────────────────────────
 
-  const editSentence = useEffectEvent((index: number, newText: string) => {
-    session.setSentences((prev) => {
-      const updated = [...prev];
-      updated[index] = newText;
-      return updated;
-    });
-    storage.updateSentence(index, newText);
-  });
+  const editSentence = useCallback(
+    (index: number, newText: string) => {
+      session.setSentences((prev) => {
+        const updated = [...prev];
+        updated[index] = newText;
+        return updated;
+      });
+      storage.updateSentence(index, newText);
+    },
+    // storage.updateSentence is useEffectEvent — stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [session.setSentences],
+  );
 
   // ── Reset & go home ────────────────────────────────────────
 
-  const handleReset = useEffectEvent(() => {
+  const handleReset = useCallback(() => {
     audio.stop();
     recording.resetRecording();
     storage.refreshHistory();
     navigate("/");
-  });
+    // audio.stop, recording.resetRecording, storage.refreshHistory are useEffectEvent — stable
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   // ── Context value ───────────────────────────────────────────
 
@@ -273,7 +287,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
     stop: audio.stop,
     isSpeaking: audio.isSpeaking,
     speed: audio.speed,
-    setSpeed: audio.onSpeedChange,
+    setSpeed: audio.setSpeed,
     voices: audio.voices,
     selectedVoice: audio.selectedVoice,
     setSelectedVoice: (voiceURI: string) => {
