@@ -19,7 +19,9 @@ type SpeechRecognitionType = new () => {
   onresult:
     | ((event: {
         results: {
+          length: number;
           [index: number]: {
+            isFinal?: boolean;
             [index: number]: { transcript: string; confidence: number };
           };
         };
@@ -58,15 +60,57 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
     recognition.maxAlternatives = 1;
 
+    // Track accumulated final results and their confidence values
+    let finalTranscriptParts: string[] = [];
+    let confidenceValues: number[] = [];
+
     recognition.onresult = (event) => {
-      const result = event.results[0][0];
-      setTranscript(result.transcript);
-      setConfidence(result.confidence);
+      // Rebuild final transcript from all final results
+      finalTranscriptParts = [];
+      confidenceValues = [];
+      let interimTranscript = "";
+      let interimConfidence = 0;
+
+      for (
+        let i = 0;
+        i < (event.results as unknown as ArrayLike<unknown>).length;
+        i++
+      ) {
+        const result = event.results[i] as {
+          isFinal?: boolean;
+          [index: number]: { transcript: string; confidence: number };
+        };
+        if (result.isFinal) {
+          finalTranscriptParts.push(result[0].transcript);
+          confidenceValues.push(result[0].confidence);
+        } else {
+          interimTranscript += result[0].transcript;
+          if (result[0].confidence > 0) {
+            interimConfidence = result[0].confidence;
+          }
+        }
+      }
+
+      const fullTranscript = finalTranscriptParts.join("") + interimTranscript;
+      setTranscript(fullTranscript);
+
+      // Calculate average confidence from final results
+      // Filter out zero values since some browsers return 0 for confidence
+      const nonZeroConfidence = confidenceValues.filter((c) => c > 0);
+      if (nonZeroConfidence.length > 0) {
+        const avgConfidence =
+          nonZeroConfidence.reduce((sum, c) => sum + c, 0) /
+          nonZeroConfidence.length;
+        setConfidence(avgConfidence);
+      } else if (interimConfidence > 0) {
+        // Fallback: use interim confidence if no final confidence available
+        setConfidence(interimConfidence);
+      }
     };
 
     recognition.onstart = () => setIsListening(true);
@@ -81,8 +125,10 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   }, [SpeechRecognitionAPI]);
 
   const stopListening = useCallback(() => {
+    // Don't manually set isListening to false here.
+    // Let the onend callback handle it, so the final onresult event
+    // (with isFinal: true and real confidence) fires first.
     recognitionRef.current?.stop();
-    setIsListening(false);
   }, []);
 
   const resetTranscript = useCallback(() => {

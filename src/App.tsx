@@ -229,7 +229,13 @@ function App() {
       const accuracy = calculateAccuracy(original, spoken);
       const completeness = calculateCompleteness(original, spoken);
       const fluency = calculateFluency(spoken, durationSeconds);
-      const confidence = Math.round(recognition.confidence * 100);
+      const browserConfidence = Math.round(recognition.confidence * 100);
+      // Some browsers return 0 for SpeechRecognition confidence.
+      // Fallback to a transcript-quality estimate to avoid a broken 0% display.
+      const confidence =
+        browserConfidence > 0
+          ? browserConfidence
+          : Math.max(1, Math.round(accuracy * 0.6 + completeness * 0.4));
 
       const score: SentenceScore = {
         accuracy,
