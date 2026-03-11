@@ -1,32 +1,44 @@
 import { useState } from "react";
+import { PastPracticePanel } from "./PastPracticePanel";
+import type { DialogueSummary } from "../types";
 
 interface TranscriptInputProps {
-  onSubmit: (sentences: string[]) => void;
+  onSubmit: (sentences: string[], rawText: string) => void;
+  pastDialogues: DialogueSummary[];
+  isLoadingHistory: boolean;
+  onLoadPastDialogue: (id: string) => Promise<void>;
+  onRemovePastDialogue?: (id: string, transcriptHash: string) => void;
 }
 
-export function TranscriptInput({ onSubmit }: TranscriptInputProps) {
+export function TranscriptInput({
+  onSubmit,
+  pastDialogues,
+  isLoadingHistory,
+  onLoadPastDialogue,
+  onRemovePastDialogue,
+}: TranscriptInputProps) {
   const [text, setText] = useState("");
 
-  const handleSubmit = () => {
+  function handleSubmit() {
     if (!text.trim()) return;
     const sentences = text
       .split(/(?<=[.!?])\s+|\n+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
-    onSubmit(sentences);
-  };
+    onSubmit(sentences, text);
+  }
 
-  const handlePaste = async () => {
+  async function handlePaste() {
     try {
       const clipText = await navigator.clipboard.readText();
       setText(clipText);
     } catch {
       // Fallback - user can paste manually
     }
-  };
+  }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-2xl mx-auto p-6 space-y-6">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2 bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-text text-transparent">
           English Shadowing
@@ -48,7 +60,7 @@ export function TranscriptInput({ onSubmit }: TranscriptInputProps) {
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste a YouTube transcript or any English text here...&#10;&#10;Each sentence will be split automatically for practice."
-          className="w-full h-48 p-4 rounded-xl border border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none transition-all"
+          className="w-full h-30 p-4 rounded-xl border border-surface-300 dark:border-surface-600 bg-surface-50 dark:bg-surface-800 text-surface-900 dark:text-surface-100 placeholder-surface-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none resize-none transition-all"
         />
         <div className="flex gap-3 mt-4">
           <button
@@ -77,6 +89,14 @@ export function TranscriptInput({ onSubmit }: TranscriptInputProps) {
           </p>
         )}
       </div>
+
+      {/* Past practice history from Supabase */}
+      <PastPracticePanel
+        dialogues={pastDialogues}
+        isLoading={isLoadingHistory}
+        onLoadDialogue={onLoadPastDialogue}
+        onRemoveDialogue={onRemovePastDialogue}
+      />
     </div>
   );
 }

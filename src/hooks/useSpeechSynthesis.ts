@@ -1,6 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import type { AccentVoice, SpeedRate } from "../types";
 
+export const DEFAULT_SPEED: SpeedRate = 0.8;
+const DEFAULT_VOICE_LANG =
+  "Microsoft AndrewMultilingual Online (Natural) - English (United States)";
 interface UseSpeechSynthesisReturn {
   speak: (text: string, onEnd?: () => void) => void;
   stop: () => void;
@@ -14,8 +17,8 @@ interface UseSpeechSynthesisReturn {
 
 export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speed, setSpeed] = useState<SpeedRate>(0.8);
-  const [selectedVoice, setSelectedVoice] = useState("");
+  const [speed, setSpeed] = useState<SpeedRate>(DEFAULT_SPEED);
+  const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE_LANG);
   const [voices, setVoices] = useState<AccentVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
