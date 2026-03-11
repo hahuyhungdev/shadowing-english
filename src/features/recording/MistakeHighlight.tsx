@@ -1,14 +1,12 @@
-import { compareWords } from "../lib/utils";
+import { usePractice } from "../practice/PracticeContext";
+import { compareWords } from "../../lib/utils";
 
-interface MistakeHighlightProps {
-  original: string;
-  spoken: string;
-}
+export function MistakeHighlight() {
+  const { currentSentence, transcript } = usePractice();
 
-export function MistakeHighlight({ original, spoken }: MistakeHighlightProps) {
-  if (!spoken) return null;
+  if (!transcript) return null;
 
-  const comparison = compareWords(original, spoken);
+  const comparison = compareWords(currentSentence, transcript);
 
   return (
     <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-lg border border-surface-200 dark:border-surface-700 p-6">
@@ -16,7 +14,6 @@ export function MistakeHighlight({ original, spoken }: MistakeHighlightProps) {
         Word Comparison
       </h3>
 
-      {/* Original with highlighting */}
       <div className="flex flex-wrap gap-1.5 mb-4">
         {comparison.original.map((item, i) => (
           <span
@@ -32,7 +29,6 @@ export function MistakeHighlight({ original, spoken }: MistakeHighlightProps) {
         ))}
       </div>
 
-      {/* Extra words */}
       {comparison.extra.length > 0 && (
         <div className="mt-3">
           <p className="text-xs text-surface-500 mb-1.5">Extra words spoken:</p>
@@ -49,7 +45,6 @@ export function MistakeHighlight({ original, spoken }: MistakeHighlightProps) {
         </div>
       )}
 
-      {/* Legend */}
       <div className="flex items-center gap-4 mt-4 pt-3 border-t border-surface-200 dark:border-surface-700">
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded bg-green-500" />

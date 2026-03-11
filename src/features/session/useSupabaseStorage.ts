@@ -1,15 +1,13 @@
 import { useEffect, useState, useTransition, useOptimistic } from "react";
-import { supabase, isSupabaseEnabled } from "../lib/supabase";
+import { supabase, isSupabaseEnabled } from "../../lib/supabase";
 import type {
   DialogueSummary,
   SentenceResult,
   SessionProgress,
-} from "../types";
-import { hashTranscript } from "../lib/utils";
+} from "../../types";
+import { hashTranscript } from "../../lib/utils";
 
 // ─── Supabase CRUD helpers ───────────────────────────────────
-// Schema: dialogues → sentences (separate table)
-//         dialogues → sessions → sentence_results (FK to sentences)
 
 async function findDialogueByContent(content: string): Promise<string | null> {
   if (!supabase) return null;
@@ -178,7 +176,6 @@ async function fetchPastDialogues(): Promise<DialogueSummary[]> {
     }[];
     const allResults = sessions.flatMap((s) => s.sentence_results ?? []);
 
-    // Best score per sentence_id
     const bestBySentence = new Map<string, number>();
     for (const r of allResults) {
       const current = bestBySentence.get(r.sentence_id) ?? 0;
@@ -195,7 +192,6 @@ async function fetchPastDialogues(): Promise<DialogueSummary[]> {
           )
         : 0;
 
-    // Compute hash from sentences ordered by position (matches what HomePage sends)
     const orderedTexts = [...sentRows]
       .sort((a, b) => a.position - b.position)
       .map((s) => s.text);
@@ -275,16 +271,13 @@ export function useSupabaseStorage() {
   const [pastDialogues, setPastDialogues] = useState<DialogueSummary[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Optimistic state for save indicator
   const [optimisticSaving, setOptimisticSaving] = useOptimistic(
     false,
     (_current: boolean, next: boolean) => next,
   );
 
-  // Internal refs for current session
   const [_dialogueId, setDialogueId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  // Map sentence position (index) → sentence UUID
   const [sentenceMap, setSentenceMap] = useState<Map<number, string>>(
     new Map(),
   );
@@ -303,53 +296,60 @@ export function useSupabaseStorage() {
     fetchPastDialogues().then(setPastDialogues);
   }
 
-  /**
-   * Save a new dialogue + sentences + session in Supabase.
-   * Returns the transcript hash. Loads existing session data via callback.
-   */
   function saveDialogue(
     sentences: string[],
     rawText: string,
-    onSessionLoaded?: (session: SessionProgress | null) => void,
+    onSessionLoaded?: (
+      sentences: string[],
+      session: SessionProgress | null,
+    ) => void,
   ) {
     const hash = hashTranscript(sentences.join(""));
 
     if (!isSupabaseEnabled()) {
-      onSessionLoaded?.(null);
+      onSessionLoaded?.(sentences, null);
       return hash;
     }
 
     startTransition(async () => {
       setOptimisticSaving(true);
       try {
-        // Find existing or create new dialogue
         let dId = await findDialogueByContent(rawText);
-        let sentRows: { id: string; position: number }[] = [];
+        let sentRows: { id: string; position: number; text: string }[] = [];
 
         if (dId) {
-          // Existing dialogue — fetch its sentence IDs
           const existing = await fetchSentencesForDialogue(dId);
-          sentRows = existing.map((s) => ({ id: s.id, position: s.position }));
+          sentRows = existing.map((s) => ({
+            id: s.id,
+            position: s.position,
+            text: s.text,
+          }));
         } else {
-          // New dialogue
           dId = await insertDialogue(
             sentences[0]?.slice(0, 60) ?? "Untitled",
             rawText,
           );
           if (!dId) return;
-          sentRows = await insertSentenceRows(dId, sentences);
+          const inserted = await insertSentenceRows(dId, sentences);
+          sentRows = inserted.map((s, i) => ({
+            id: s.id,
+            position: s.position,
+            text: sentences[i],
+          }));
         }
 
         setDialogueId(dId);
 
-        // Build position → sentenceId map
         const map = new Map<number, string>();
         for (const s of sentRows) {
           map.set(s.position, s.id);
         }
         setSentenceMap(map);
 
-        // Get or create session
+        const dbSentences = [...sentRows]
+          .sort((a, b) => a.position - b.position)
+          .map((s) => s.text);
+
         const existingSession = await fetchLatestSession(dId);
         let sId = existingSession?.id ?? null;
         if (!sId) {
@@ -357,18 +357,22 @@ export function useSupabaseStorage() {
         }
         if (sId) setSessionId(sId);
 
-        // Load existing results
-        if (sId && onSessionLoaded) {
+        if (sId) {
           const dbResults = await fetchResultsForSession(sId);
-          if (dbResults.length > 0) {
-            onSessionLoaded({
-              transcriptHash: hash,
-              currentIndex: 0,
-              results: mapDbResults(dbResults),
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            });
-          }
+          onSessionLoaded?.(
+            dbSentences,
+            dbResults.length > 0
+              ? {
+                  transcriptHash: hash,
+                  currentIndex: 0,
+                  results: mapDbResults(dbResults),
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                }
+              : null,
+          );
+        } else {
+          onSessionLoaded?.(dbSentences, null);
         }
         refreshHistory();
       } finally {
@@ -379,12 +383,10 @@ export function useSupabaseStorage() {
     return hash;
   }
 
-  /** No-op: new schema doesn't track current_index in sessions. */
   function saveCurrentIndex(_hash: string, _index: number) {
-    // intentionally empty
+    // intentionally empty — new schema doesn't track current_index
   }
 
-  /** Save a sentence result to sentence_results table (non-blocking). */
   function saveSentenceResult(_hash: string, result: SentenceResult) {
     if (!isSupabaseEnabled() || !sessionId) return;
 
@@ -405,7 +407,6 @@ export function useSupabaseStorage() {
     });
   }
 
-  /** Load a past dialogue by its Supabase ID. Returns sentences + session info. */
   async function loadPastDialogue(id: string): Promise<{
     sentences: string[];
     hash: string;
@@ -419,19 +420,16 @@ export function useSupabaseStorage() {
 
     setDialogueId(dialogue.id);
 
-    // Load sentences
     const sentRows = await fetchSentencesForDialogue(dialogue.id);
     const sentences = sentRows.map((s) => s.text);
     const hash = hashTranscript(sentences.join(""));
 
-    // Build position → sentenceId map
     const map = new Map<number, string>();
     for (const s of sentRows) {
       map.set(s.position, s.id);
     }
     setSentenceMap(map);
 
-    // Get or create session
     const existingSession = await fetchLatestSession(dialogue.id);
     let sId = existingSession?.id ?? null;
     if (!sId) {
@@ -439,7 +437,6 @@ export function useSupabaseStorage() {
     }
     if (sId) setSessionId(sId);
 
-    // Fetch results
     let results: SentenceResult[] = [];
     if (sId) {
       const dbResults = await fetchResultsForSession(sId);
@@ -449,7 +446,6 @@ export function useSupabaseStorage() {
     return { sentences, hash, currentIndex: 0, results };
   }
 
-  /** Remove a dialogue from Supabase and update the local list. */
   function removeDialogue(id: string, _transcriptHash: string) {
     setPastDialogues((prev) => prev.filter((d) => d.id !== id));
     if (!isSupabaseEnabled()) return;
@@ -458,18 +454,32 @@ export function useSupabaseStorage() {
     });
   }
 
+  function updateSentence(index: number, newText: string) {
+    if (!isSupabaseEnabled()) return;
+    const sentenceId = sentenceMap.get(index);
+    if (!sentenceId) {
+      console.warn("[Supabase] No sentence ID for index", index);
+      return;
+    }
+    startTransition(async () => {
+      const { error } = await supabase!
+        .from("sentences")
+        .update({ text: newText })
+        .eq("id", sentenceId);
+      if (error) console.error("[Supabase] updateSentence:", error.message);
+    });
+  }
+
   return {
-    // State
     isPending: isPending || optimisticSaving,
     pastDialogues,
     isLoadingHistory,
-
-    // Actions
     saveDialogue,
     saveCurrentIndex,
     saveSentenceResult,
     loadPastDialogue,
     removeDialogue,
+    updateSentence,
     refreshHistory,
   };
 }

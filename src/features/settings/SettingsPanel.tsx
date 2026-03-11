@@ -1,38 +1,11 @@
-import type { AccentVoice } from "../types";
+import { useSettings } from "../../contexts/SettingsContext";
+import { usePractice } from "../practice/PracticeContext";
 
-interface SettingsPanelProps {
-  darkMode: boolean;
-  onToggleDarkMode: () => void;
-  loopMode: boolean;
-  onToggleLoop: () => void;
-  hideTextMode: boolean;
-  onToggleHideText: () => void;
-  autoPlayNext: boolean;
-  onToggleAutoPlay: () => void;
-  autoPronounce: boolean;
-  onToggleAutoPronounce: () => void;
-  voices: AccentVoice[];
-  selectedAccent: string;
-  onAccentChange: (accent: string) => void;
-  onReset: () => void;
-}
+export function SettingsPanel() {
+  const { settings, updateSettings } = useSettings();
+  const { voices, selectedVoice, setSelectedVoice, handleReset } =
+    usePractice();
 
-export function SettingsPanel({
-  darkMode,
-  onToggleDarkMode,
-  loopMode,
-  onToggleLoop,
-  hideTextMode,
-  onToggleHideText,
-  autoPlayNext,
-  onToggleAutoPlay,
-  autoPronounce,
-  onToggleAutoPronounce,
-  voices,
-  selectedAccent,
-  onAccentChange,
-  onReset,
-}: SettingsPanelProps) {
   return (
     <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-lg border border-surface-200 dark:border-surface-700 p-6">
       <h3 className="text-sm font-medium text-surface-600 dark:text-surface-400 mb-4">
@@ -40,47 +13,47 @@ export function SettingsPanel({
       </h3>
 
       <div className="space-y-3">
-        {/* Dark Mode */}
         <ToggleItem
           label="Dark mode"
           icon="🌙"
-          checked={darkMode}
-          onChange={onToggleDarkMode}
+          checked={settings.darkMode}
+          onChange={() => updateSettings({ darkMode: !settings.darkMode })}
         />
 
-        {/* Loop Mode */}
         <ToggleItem
           label="Loop sentence"
           icon="🔁"
-          checked={loopMode}
-          onChange={onToggleLoop}
+          checked={settings.loopMode}
+          onChange={() => updateSettings({ loopMode: !settings.loopMode })}
         />
 
-        {/* Hide Text */}
         <ToggleItem
           label="Hide text (memory)"
           icon="🙈"
-          checked={hideTextMode}
-          onChange={onToggleHideText}
+          checked={settings.hideTextMode}
+          onChange={() =>
+            updateSettings({ hideTextMode: !settings.hideTextMode })
+          }
         />
 
-        {/* Auto-play next */}
         <ToggleItem
           label="Auto-play next"
           icon="⏭"
-          checked={autoPlayNext}
-          onChange={onToggleAutoPlay}
+          checked={settings.autoPlayNext}
+          onChange={() =>
+            updateSettings({ autoPlayNext: !settings.autoPlayNext })
+          }
         />
 
-        {/* Auto-pronounce on navigate */}
         <ToggleItem
           label="Auto-pronounce"
           icon="🔊"
-          checked={autoPronounce}
-          onChange={onToggleAutoPronounce}
+          checked={settings.autoPronounce}
+          onChange={() =>
+            updateSettings({ autoPronounce: !settings.autoPronounce })
+          }
         />
 
-        {/* Accent Selector */}
         {voices.length > 0 && (
           <div className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
@@ -90,8 +63,8 @@ export function SettingsPanel({
               </span>
             </div>
             <select
-              value={selectedAccent}
-              onChange={(e) => onAccentChange(e.target.value)}
+              value={selectedVoice}
+              onChange={(e) => setSelectedVoice(e.target.value)}
               className="text-sm bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-2 py-1 text-surface-700 dark:text-surface-300 outline-none max-w-[180px]"
             >
               {voices.map((v) => (
@@ -104,9 +77,8 @@ export function SettingsPanel({
         )}
       </div>
 
-      {/* Reset */}
       <button
-        onClick={onReset}
+        onClick={handleReset}
         className="mt-6 w-full px-4 py-2 rounded-xl border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-sm font-medium transition-colors"
       >
         ↩ New Transcript

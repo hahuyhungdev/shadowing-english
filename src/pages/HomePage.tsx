@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 import { TranscriptInput } from "../components/TranscriptInput";
-import { useSupabaseStorage } from "../hooks/useSupabaseStorage";
+import { useSupabaseStorage } from "../features/session/useSupabaseStorage";
 import { hashTranscript } from "../lib/utils";
 
 export default function HomePage() {

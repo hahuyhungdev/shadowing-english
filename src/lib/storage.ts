@@ -1,4 +1,4 @@
-import { DEFAULT_SPEED } from "../hooks/useSpeechSynthesis";
+import { DEFAULT_SPEED } from "../features/playback/useSpeechSynthesis";
 import type { AppSettings } from "../types";
 
 const STORAGE_KEY = "shadowing-english";

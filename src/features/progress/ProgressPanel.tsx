@@ -1,23 +1,19 @@
-import { getScoreColor } from "../lib/utils";
-import type { SentenceResult } from "../types";
+import { getScoreColor } from "../../lib/utils";
+import { usePractice } from "../practice/PracticeContext";
 
-interface ProgressPanelProps {
-  results: SentenceResult[];
-  averageScore: number;
-  totalSentences: number;
-  currentIndex: number;
-  onJumpTo: (index: number) => void;
-}
+export function ProgressPanel() {
+  const { results, sentences, currentIndex, goToSentence } = usePractice();
 
-export function ProgressPanel({
-  results,
-  averageScore,
-  totalSentences,
-  currentIndex,
-  onJumpTo,
-}: ProgressPanelProps) {
+  const totalSentences = sentences.length;
   const completedCount = results.length;
   const completionPercent = Math.round((completedCount / totalSentences) * 100);
+
+  const averageScore =
+    results.length > 0
+      ? Math.round(
+          results.reduce((sum, r) => sum + r.score.overall, 0) / results.length,
+        )
+      : 0;
 
   // Build a map of sentence index -> score
   const scoreMap = new Map<number, number>();
@@ -60,7 +56,7 @@ export function ProgressPanel({
           return (
             <button
               key={i}
-              onClick={() => onJumpTo(i)}
+              onClick={() => goToSentence(i)}
               title={`Sentence ${i + 1}${score !== undefined ? ` — Score: ${score}` : ""}`}
               className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
                 isCurrent

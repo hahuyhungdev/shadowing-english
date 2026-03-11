@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { useSettings } from "../contexts/SettingsContext";
-import { useSupabaseStorage } from "../hooks/useSupabaseStorage";
+import { useSupabaseStorage } from "../features/session/useSupabaseStorage";
 
 export function Layout() {
   const { settings, updateSettings } = useSettings();

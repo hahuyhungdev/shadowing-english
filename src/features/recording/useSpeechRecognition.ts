@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useEffectEvent, useRef, useState } from "react";
 
 interface UseSpeechRecognitionReturn {
   startListening: () => void;
@@ -10,7 +10,6 @@ interface UseSpeechRecognitionReturn {
   isSupported: boolean;
 }
 
-// Web Speech API types (not in all TS libs)
 type SpeechRecognitionType = new () => {
   continuous: boolean;
   interimResults: boolean;
@@ -56,7 +55,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   const SpeechRecognitionAPI = getSpeechRecognitionAPI();
   const isSupported = !!SpeechRecognitionAPI;
 
-  const startListening = useCallback(() => {
+  const startListening = useEffectEvent(() => {
     if (!SpeechRecognitionAPI) return;
 
     const recognition = new SpeechRecognitionAPI();
@@ -65,12 +64,10 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
     recognition.lang = "en-US";
     recognition.maxAlternatives = 1;
 
-    // Track accumulated final results and their confidence values
     let finalTranscriptParts: string[] = [];
     let confidenceValues: number[] = [];
 
     recognition.onresult = (event) => {
-      // Rebuild final transcript from all final results
       finalTranscriptParts = [];
       confidenceValues = [];
       let interimTranscript = "";
@@ -99,8 +96,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       const fullTranscript = finalTranscriptParts.join("") + interimTranscript;
       setTranscript(fullTranscript);
 
-      // Calculate average confidence from final results
-      // Filter out zero values since some browsers return 0 for confidence
       const nonZeroConfidence = confidenceValues.filter((c) => c > 0);
       if (nonZeroConfidence.length > 0) {
         const avgConfidence =
@@ -108,7 +103,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
           nonZeroConfidence.length;
         setConfidence(avgConfidence);
       } else if (interimConfidence > 0) {
-        // Fallback: use interim confidence if no final confidence available
         setConfidence(interimConfidence);
       }
     };
@@ -122,19 +116,16 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
     recognitionRef.current = recognition;
     recognition.start();
-  }, [SpeechRecognitionAPI]);
+  });
 
-  const stopListening = useCallback(() => {
-    // Don't manually set isListening to false here.
-    // Let the onend callback handle it, so the final onresult event
-    // (with isFinal: true and real confidence) fires first.
+  const stopListening = useEffectEvent(() => {
     recognitionRef.current?.stop();
-  }, []);
+  });
 
-  const resetTranscript = useCallback(() => {
+  const resetTranscript = useEffectEvent(() => {
     setTranscript("");
     setConfidence(0);
-  }, []);
+  });
 
   return {
     startListening,

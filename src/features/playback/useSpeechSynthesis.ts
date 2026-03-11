@@ -1,9 +1,10 @@
-import { useCallback, useRef, useState } from "react";
-import type { AccentVoice, SpeedRate } from "../types";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import type { AccentVoice, SpeedRate } from "../../types";
 
 export const DEFAULT_SPEED: SpeedRate = 0.8;
 const DEFAULT_VOICE_LANG =
   "Microsoft AndrewMultilingual Online (Natural) - English (United States)";
+
 interface UseSpeechSynthesisReturn {
   speak: (text: string, onEnd?: () => void) => void;
   stop: () => void;
@@ -22,8 +23,10 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [voices, setVoices] = useState<AccentVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Load voices
-  if (typeof window !== "undefined" && voices.length === 0) {
+  // Load voices (in useEffect to keep render pure — required for React Compiler)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const loadVoices = () => {
       const allVoices = speechSynthesis.getVoices();
       const englishVoices = allVoices
@@ -36,7 +39,6 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
 
       if (englishVoices.length > 0) {
         setVoices(englishVoices);
-        // Auto-select first voice if none selected
         setSelectedVoice((prev) => {
           if (prev && englishVoices.some((v) => v.voiceURI === prev))
             return prev;
@@ -46,41 +48,40 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
     };
 
     loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
-  }
+    speechSynthesis.addEventListener("voiceschanged", loadVoices);
+    return () => {
+      speechSynthesis.removeEventListener("voiceschanged", loadVoices);
+    };
+  }, []);
 
-  const speak = useCallback(
-    (text: string, onEnd?: () => void) => {
-      speechSynthesis.cancel();
+  const speak = useEffectEvent((text: string, onEnd?: () => void) => {
+    speechSynthesis.cancel();
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = speed;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = speed;
 
-      // Match voice by voiceURI for exact selection
-      const allVoices = speechSynthesis.getVoices();
-      const matchingVoice = allVoices.find((v) => v.voiceURI === selectedVoice);
-      if (matchingVoice) {
-        utterance.voice = matchingVoice;
-        utterance.lang = matchingVoice.lang;
-      }
+    const allVoices = speechSynthesis.getVoices();
+    const matchingVoice = allVoices.find((v) => v.voiceURI === selectedVoice);
+    if (matchingVoice) {
+      utterance.voice = matchingVoice;
+      utterance.lang = matchingVoice.lang;
+    }
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => {
-        setIsSpeaking(false);
-        onEnd?.();
-      };
-      utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      onEnd?.();
+    };
+    utterance.onerror = () => setIsSpeaking(false);
 
-      utteranceRef.current = utterance;
-      speechSynthesis.speak(utterance);
-    },
-    [speed, selectedVoice],
-  );
+    utteranceRef.current = utterance;
+    speechSynthesis.speak(utterance);
+  });
 
-  const stop = useCallback(() => {
+  const stop = useEffectEvent(() => {
     speechSynthesis.cancel();
     setIsSpeaking(false);
-  }, []);
+  });
 
   return {
     speak,

@@ -1,13 +1,10 @@
-import type { SentenceScore } from "../types";
-import { getScoreColor, getScoreBgColor } from "../lib/utils";
+import { usePractice } from "../practice/PracticeContext";
+import { getScoreColor, getScoreBgColor } from "../../lib/utils";
 
-interface ScoreDisplayProps {
-  score: SentenceScore;
-  spokenText: string;
-}
+export function ScoreDisplay() {
+  const { currentScore: score, transcript: spokenText } = usePractice();
 
-export function ScoreDisplay({ score, spokenText }: ScoreDisplayProps) {
-  if (!spokenText) return null;
+  if (!score || !spokenText) return null;
 
   const scoreItems = [
     { label: "Accuracy", value: score.accuracy, icon: "🎯" },
@@ -18,7 +15,6 @@ export function ScoreDisplay({ score, spokenText }: ScoreDisplayProps) {
 
   return (
     <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-lg border border-surface-200 dark:border-surface-700 p-6">
-      {/* Overall score */}
       <div className="text-center mb-6">
         <div
           className={`inline-flex items-center justify-center w-24 h-24 rounded-full border-4 ${getScoreBgColor(score.overall)}`}
@@ -34,7 +30,6 @@ export function ScoreDisplay({ score, spokenText }: ScoreDisplayProps) {
         </p>
       </div>
 
-      {/* Individual scores */}
       <div className="grid grid-cols-2 gap-3">
         {scoreItems.map((item) => (
           <div
@@ -54,11 +49,10 @@ export function ScoreDisplay({ score, spokenText }: ScoreDisplayProps) {
         ))}
       </div>
 
-      {/* Spoken text */}
       <div className="mt-4 p-3 bg-surface-50 dark:bg-surface-800 rounded-xl">
         <p className="text-xs text-surface-500 mb-1">You said:</p>
         <p className="text-sm text-surface-700 dark:text-surface-300 italic">
-          "{spokenText}"
+          &ldquo;{spokenText}&rdquo;
         </p>
       </div>
     </div>

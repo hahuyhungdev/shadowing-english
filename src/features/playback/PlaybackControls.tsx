@@ -1,28 +1,16 @@
-import type { SpeedRate } from "../types";
-
-interface PlaybackControlsProps {
-  onPlay: () => void;
-  onStop: () => void;
-  isSpeaking: boolean;
-  speed: SpeedRate;
-  onSpeedChange: (speed: SpeedRate) => void;
-}
+import { usePractice } from "../practice/PracticeContext";
+import type { SpeedRate } from "../../types";
 
 const speedOptions: SpeedRate[] = [0.6, 0.8, 1, 1.2, 1.5];
 
-export function PlaybackControls({
-  onPlay,
-  onStop,
-  isSpeaking,
-  speed,
-  onSpeedChange,
-}: PlaybackControlsProps) {
+export function PlaybackControls() {
+  const { handlePlay, stop, isSpeaking, speed, setSpeed } = usePractice();
+
   return (
     <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-lg border border-surface-200 dark:border-surface-700 p-4">
       <div className="flex items-center gap-3">
-        {/* Play / Stop button */}
         <button
-          onClick={isSpeaking ? onStop : onPlay}
+          onClick={isSpeaking ? stop : handlePlay}
           className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all ${
             isSpeaking
               ? "bg-red-500 text-white hover:bg-red-600"
@@ -32,13 +20,12 @@ export function PlaybackControls({
           {isSpeaking ? "⏹ Stop" : "▶ Play"}
         </button>
 
-        {/* Speed control */}
         <div className="flex items-center gap-1 ml-auto">
           <span className="text-xs text-surface-500 mr-1">Speed</span>
           {speedOptions.map((s) => (
             <button
               key={s}
-              onClick={() => onSpeedChange(s)}
+              onClick={() => setSpeed(s)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 speed === s
                   ? "bg-primary-600 text-white shadow-sm"
