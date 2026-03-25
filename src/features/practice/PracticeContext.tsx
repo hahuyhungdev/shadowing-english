@@ -52,6 +52,7 @@ interface PracticeContextValue {
   googleVoiceName: string;
   setGoogleVoiceName: (voiceName: string) => void;
   googleVoices: { label: string; value: string }[];
+  downloadAudio: () => Promise<void>;
 
   // Recording
   startRecording: () => void;
@@ -309,6 +310,10 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
       }
     },
     googleVoices: audio.googleVoices,
+
+    downloadAudio: async () => {
+      if (currentSentence) await audio.downloadAudio(currentSentence);
+    },
 
     startRecording: recording.startRecording,
     stopRecording: recording.stopRecording,

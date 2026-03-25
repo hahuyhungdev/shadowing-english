@@ -99,6 +99,45 @@ export function useAudioPlayback() {
     synthesis.speak(text, onEnd);
   });
 
+  const downloadAudio = useEffectEvent(async (text: string) => {
+    if (!text) return;
+    try {
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text,
+          voiceName: googleVoiceName,
+          speakingRate: synthesis.speed,
+        }),
+      });
+
+      if (!response.ok) throw new Error("TTS download failed");
+
+      const data = (await response.json()) as { audioContent?: string };
+      if (!data.audioContent)
+        throw new Error("Google TTS missing audioContent");
+
+      const byteCharacters = atob(data.audioContent);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "audio/mp3" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `tts-${Date.now()}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      // nothing special — silence and let caller decide
+    }
+  });
+
   const handlePlay = useEffectEvent((sentence: string | undefined) => {
     if (sentence) {
       speakWithLoop(sentence);
@@ -121,5 +160,6 @@ export function useAudioPlayback() {
     googleVoiceName,
     setGoogleVoiceName,
     googleVoices: getChirp3MaleVoices(),
+    downloadAudio,
   };
 }
