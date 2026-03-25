@@ -3,6 +3,7 @@ import { SettingsProvider } from "./contexts/SettingsContext";
 import { Layout } from "./components/Layout";
 import HomePage from "./pages/HomePage";
 import PracticePage from "./pages/PracticePage";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
           <Route element={<Layout />}>
             <Route index element={<HomePage />} />
             <Route path="practice/:hash" element={<PracticePage />} />
+            <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
       </BrowserRouter>
