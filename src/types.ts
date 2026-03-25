@@ -6,6 +6,7 @@ export interface AppSettings {
   autoPlayNext: boolean;
   autoPronounce: boolean;
   selectedAccent: string;
+  ttsProvider: "edge" | "google";
 }
 
 export interface SentenceScore {

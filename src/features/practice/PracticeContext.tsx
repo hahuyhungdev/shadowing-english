@@ -47,6 +47,13 @@ interface PracticeContextValue {
   voices: AccentVoice[];
   selectedVoice: string;
   setSelectedVoice: (voiceURI: string) => void;
+  ttsProvider: "edge" | "google";
+  setTtsProvider: (provider: "edge" | "google") => void;
+  googleApiKey: string;
+  setGoogleApiKey: (key: string) => void;
+  googleVoiceName: string;
+  setGoogleVoiceName: (voiceName: string) => void;
+  googleVoices: { label: string; value: string }[];
 
   // Recording
   startRecording: () => void;
@@ -69,7 +76,6 @@ interface PracticeContextValue {
 
 const PracticeContext = createContext<PracticeContextValue | null>(null);
 
-// eslint-disable-next-line react-refresh/only-export-components
 export function usePractice() {
   const ctx = useContext(PracticeContext);
   if (!ctx) throw new Error("usePractice must be used within PracticeProvider");
@@ -294,6 +300,19 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
       audio.setSelectedVoice(voiceURI);
       updateSettings({ selectedAccent: voiceURI });
     },
+    ttsProvider: settings.ttsProvider,
+    setTtsProvider: (provider: "edge" | "google") => {
+      updateSettings({ ttsProvider: provider });
+    },
+    googleApiKey: audio.googleApiKey,
+    setGoogleApiKey: audio.setGoogleApiKey,
+    googleVoiceName: audio.googleVoiceName,
+    setGoogleVoiceName: (voiceName: string) => {
+      if (audio.googleVoices.some((v) => v.value === voiceName)) {
+        audio.setGoogleVoiceName(voiceName as typeof audio.googleVoiceName);
+      }
+    },
+    googleVoices: audio.googleVoices,
 
     startRecording: recording.startRecording,
     stopRecording: recording.stopRecording,

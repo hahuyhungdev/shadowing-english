@@ -3,8 +3,19 @@ import { usePractice } from "../practice/PracticeContext";
 
 export function SettingsPanel() {
   const { settings, updateSettings } = useSettings();
-  const { voices, selectedVoice, setSelectedVoice, handleReset } =
-    usePractice();
+  const {
+    voices,
+    selectedVoice,
+    setSelectedVoice,
+    ttsProvider,
+    setTtsProvider,
+    googleApiKey,
+    setGoogleApiKey,
+    googleVoiceName,
+    setGoogleVoiceName,
+    googleVoices,
+    handleReset,
+  } = usePractice();
 
   return (
     <div className="bg-white dark:bg-surface-900 rounded-2xl shadow-lg border border-surface-200 dark:border-surface-700 p-6">
@@ -53,6 +64,57 @@ export function SettingsPanel() {
             updateSettings({ autoPronounce: !settings.autoPronounce })
           }
         />
+
+        <div className="flex items-center justify-between py-1">
+          <div className="flex items-center gap-2">
+            <span>🎙</span>
+            <span className="text-sm text-surface-700 dark:text-surface-300">
+              TTS Provider
+            </span>
+          </div>
+          <select
+            value={ttsProvider}
+            onChange={(e) => setTtsProvider(e.target.value as "edge" | "google")}
+            className="text-sm bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-2 py-1 text-surface-700 dark:text-surface-300 outline-none"
+          >
+            <option value="edge">Edge (default)</option>
+            <option value="google">Google TTS</option>
+          </select>
+        </div>
+
+        {ttsProvider === "google" && (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <label className="text-xs text-surface-500 dark:text-surface-400 block">
+                Google API Key (temporary)
+              </label>
+              <input
+                type="password"
+                value={googleApiKey}
+                onChange={(e) => setGoogleApiKey(e.target.value)}
+                placeholder="AIza..."
+                className="w-full text-sm bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-3 py-2 text-surface-700 dark:text-surface-300 outline-none"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs text-surface-500 dark:text-surface-400 block">
+                Chirp 3 Male Voice
+              </label>
+              <select
+                value={googleVoiceName}
+                onChange={(e) => setGoogleVoiceName(e.target.value)}
+                className="w-full text-sm bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-3 py-2 text-surface-700 dark:text-surface-300 outline-none"
+              >
+                {googleVoices.map((voice) => (
+                  <option key={voice.value} value={voice.value}>
+                    {voice.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {voices.length > 0 && (
           <div className="flex items-center justify-between py-1">

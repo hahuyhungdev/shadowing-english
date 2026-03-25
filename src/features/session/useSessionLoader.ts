@@ -11,7 +11,12 @@ export function useSessionLoader() {
   const storage = useSupabaseStorage();
 
   const locationState = location.state as
-    | { sentences?: string[]; rawText?: string }
+    | {
+        sentences?: string[];
+        rawText?: string;
+        currentIndex?: number;
+        results?: SentenceResult[];
+      }
     | undefined;
 
   const [sentences, setSentences] = useState<string[]>([]);
@@ -22,14 +27,27 @@ export function useSessionLoader() {
 
   useEffect(() => {
     async function load() {
-      // Try location state first (navigated from home)
+      // Try location state first (navigated from home or loaded from history)
       if (locationState?.sentences && locationState.sentences.length > 0) {
         const s = locationState.sentences;
         const h = hash ?? hashTranscript(s.join(""));
         setSentences(s);
         setTranscriptHash(h);
 
-        // Save to Supabase and load any existing progress (incl. edited sentences)
+        // When loading from history, hydrate from state and avoid re-saving dialogue.
+        // This prevents duplicate dialogue inserts due to content mismatch.
+        const hasHydratedProgress =
+          typeof locationState.currentIndex === "number" ||
+          Array.isArray(locationState.results);
+
+        if (hasHydratedProgress) {
+          setCurrentIndex(locationState.currentIndex ?? 0);
+          setResults(locationState.results ?? []);
+          setIsLoading(false);
+          return;
+        }
+
+        // Fresh submit from home: save once and hydrate from DB session if available.
         storage.saveDialogue(
           s,
           locationState.rawText ?? s.join(" "),

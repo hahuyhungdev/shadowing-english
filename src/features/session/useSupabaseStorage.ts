@@ -276,7 +276,7 @@ export function useSupabaseStorage() {
     (_current: boolean, next: boolean) => next,
   );
 
-  const [_dialogueId, setDialogueId] = useState<string | null>(null);
+  const [, setDialogueId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sentenceMap, setSentenceMap] = useState<Map<number, string>>(
     new Map(),
@@ -384,10 +384,13 @@ export function useSupabaseStorage() {
   }
 
   function saveCurrentIndex(_hash: string, _index: number) {
+    void _hash;
+    void _index;
     // intentionally empty — new schema doesn't track current_index
   }
 
   function saveSentenceResult(_hash: string, result: SentenceResult) {
+    void _hash;
     if (!isSupabaseEnabled() || !sessionId) return;
 
     const sentenceId = sentenceMap.get(result.sentenceIndex);
@@ -447,6 +450,7 @@ export function useSupabaseStorage() {
   }
 
   function removeDialogue(id: string, _transcriptHash: string) {
+    void _transcriptHash;
     setPastDialogues((prev) => prev.filter((d) => d.id !== id));
     if (!isSupabaseEnabled()) return;
     startTransition(async () => {

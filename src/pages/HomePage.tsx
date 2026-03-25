@@ -20,7 +20,11 @@ export default function HomePage() {
     if (!loaded) return;
 
     navigate(`/practice/${loaded.hash}`, {
-      state: { sentences: loaded.sentences },
+      state: {
+        sentences: loaded.sentences,
+        currentIndex: loaded.currentIndex,
+        results: loaded.results,
+      },
     });
   }
 

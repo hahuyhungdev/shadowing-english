@@ -22,6 +22,7 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   const [selectedVoice, setSelectedVoice] = useState(DEFAULT_VOICE_LANG);
   const [voices, setVoices] = useState<AccentVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const lastSpeakRef = useRef<{ text: string; at: number } | null>(null);
 
   // Load voices (in useEffect to keep render pure — required for React Compiler)
   useEffect(() => {
@@ -55,9 +56,19 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
   }, []);
 
   const speak = useEffectEvent((text: string, onEnd?: () => void) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+
+    const now = Date.now();
+    const last = lastSpeakRef.current;
+    if (last && last.text === trimmed && now - last.at < 250) {
+      return;
+    }
+    lastSpeakRef.current = { text: trimmed, at: now };
+
     speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(trimmed);
     utterance.rate = speed;
 
     const allVoices = speechSynthesis.getVoices();

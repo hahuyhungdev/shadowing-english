@@ -12,6 +12,7 @@ const defaultSettings: AppSettings = {
   autoPlayNext: false,
   autoPronounce: true,
   selectedAccent: "en-US",
+  ttsProvider: "edge",
 };
 
 // --- Settings ---
