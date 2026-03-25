@@ -24,7 +24,6 @@ export function useAudioPlayback() {
   const synthesis = useSpeechSynthesis();
   const { settings } = useSettings();
   const [isGoogleSpeaking, setIsGoogleSpeaking] = useState(false);
-  const [googleApiKey, setGoogleApiKey] = useState("");
   const [googleVoiceName, setGoogleVoiceName] = useState<Chirp3VoiceName>(
     CHIRP3_MALE_VOICES[0].value,
   );
@@ -42,33 +41,17 @@ export function useAudioPlayback() {
 
   const speakGoogle = useEffectEvent(
     async (text: string, onEnd?: () => void) => {
-      if (!googleApiKey.trim()) {
-        synthesis.speak(text, onEnd);
-        return;
-      }
-
       setIsGoogleSpeaking(true);
       try {
-        const response = await fetch(
-          `https://texttospeech.googleapis.com/v1/text:synthesize?key=${encodeURIComponent(
-            googleApiKey.trim(),
-          )}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              input: { text },
-              voice: {
-                languageCode: "en-US",
-                name: googleVoiceName,
-              },
-              audioConfig: {
-                audioEncoding: "MP3",
-                speakingRate: synthesis.speed,
-              },
-            }),
-          },
-        );
+        const response = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            text,
+            voiceName: googleVoiceName,
+            speakingRate: synthesis.speed,
+          }),
+        });
 
         if (!response.ok) {
           throw new Error(`Google TTS error: ${response.status}`);
@@ -135,8 +118,6 @@ export function useAudioPlayback() {
     selectedVoice: synthesis.selectedVoice,
     setSelectedVoice: synthesis.setSelectedVoice,
     stop,
-    googleApiKey,
-    setGoogleApiKey,
     googleVoiceName,
     setGoogleVoiceName,
     googleVoices: getChirp3MaleVoices(),

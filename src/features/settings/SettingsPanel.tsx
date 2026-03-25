@@ -9,8 +9,6 @@ export function SettingsPanel() {
     setSelectedVoice,
     ttsProvider,
     setTtsProvider,
-    googleApiKey,
-    setGoogleApiKey,
     googleVoiceName,
     setGoogleVoiceName,
     googleVoices,
@@ -84,18 +82,9 @@ export function SettingsPanel() {
 
         {ttsProvider === "google" && (
           <div className="space-y-2">
-            <div className="space-y-1">
-              <label className="text-xs text-surface-500 dark:text-surface-400 block">
-                Google API Key (temporary)
-              </label>
-              <input
-                type="password"
-                value={googleApiKey}
-                onChange={(e) => setGoogleApiKey(e.target.value)}
-                placeholder="AIza..."
-                className="w-full text-sm bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-600 rounded-lg px-3 py-2 text-surface-700 dark:text-surface-300 outline-none"
-              />
-            </div>
+            <p className="text-xs text-surface-500 dark:text-surface-400">
+              Using server-side Google key from /api/tts
+            </p>
 
             <div className="space-y-1">
               <label className="text-xs text-surface-500 dark:text-surface-400 block">

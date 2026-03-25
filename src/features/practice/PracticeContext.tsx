@@ -49,8 +49,6 @@ interface PracticeContextValue {
   setSelectedVoice: (voiceURI: string) => void;
   ttsProvider: "edge" | "google";
   setTtsProvider: (provider: "edge" | "google") => void;
-  googleApiKey: string;
-  setGoogleApiKey: (key: string) => void;
   googleVoiceName: string;
   setGoogleVoiceName: (voiceName: string) => void;
   googleVoices: { label: string; value: string }[];
@@ -304,8 +302,6 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
     setTtsProvider: (provider: "edge" | "google") => {
       updateSettings({ ttsProvider: provider });
     },
-    googleApiKey: audio.googleApiKey,
-    setGoogleApiKey: audio.setGoogleApiKey,
     googleVoiceName: audio.googleVoiceName,
     setGoogleVoiceName: (voiceName: string) => {
       if (audio.googleVoices.some((v) => v.value === voiceName)) {
