@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import type { AccentVoice, SpeedRate } from "../../types";
 
-export const DEFAULT_SPEED: SpeedRate = 0.8;
+export const DEFAULT_SPEED: SpeedRate = 0.7;
 const DEFAULT_VOICE_LANG =
   "Microsoft AndrewMultilingual Online (Natural) - English (United States)";
 

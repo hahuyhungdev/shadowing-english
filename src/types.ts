@@ -38,7 +38,7 @@ export interface WordComparison {
   status: "correct" | "missing" | "extra";
 }
 
-export type SpeedRate = 0.6 | 0.8 | 1 | 1.2 | 1.5;
+export type SpeedRate = 0.5 | 0.7 | 1 | 1.2;
 
 export type AccentVoice = {
   label: string;
