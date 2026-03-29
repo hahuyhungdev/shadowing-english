@@ -215,7 +215,7 @@ export function PracticeProvider({ children }: { children: ReactNode }) {
 
     // Loop mode — re-play current sentence
     if (settings.loopMode) {
-      setTimeout(() => audio.handlePlay(currentSentence), 2000);
+      setTimeout(() => audio.handlePlay(currentSentence), 4000);
     }
     // audio.handlePlay is useEffectEvent — stable; goNext is useCallback captured via ref above
     // eslint-disable-next-line react-hooks/exhaustive-deps
